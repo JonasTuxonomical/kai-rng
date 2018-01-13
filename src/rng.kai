@@ -5,6 +5,8 @@ U32 :: u32
 F64 :: f64
 
 
+// plain linear congruential generator (LCG) without parameter choice
+// source: Paul Glasserman, "Monte Carlo Methods in Financial Engineering" (2004)
 lcg :: fn (state, a, m : U32) -> F64, U32 {
     newState := (state * a) % m
     rand := cast(F64) newState / cast(F64) m
