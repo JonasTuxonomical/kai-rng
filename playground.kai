@@ -1,0 +1,28 @@
+#import kai("posix")
+#import "src/rng.kai"
+
+main :: fn () -> void {
+
+// test generator
+    a : u32 = 6
+    m : u32 = 11
+    x : u32 = 1
+
+    posix.printf("a = %d\n".raw, a)
+    posix.printf("m = %d\n".raw, m)
+    posix.printf("x = %d\n".raw, x)
+    
+    rand : f64
+    i : u32
+    for i=0; i<11; i+=1 {
+        posix.printf("\ni = %d\n".raw, i)
+
+        rand, x = rng.lcg(x, a, m)
+
+        posix.printf("rand = %.4f\n".raw, rand)
+        posix.printf("newState = %d\n".raw, x)
+    }
+
+
+
+}

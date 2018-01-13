@@ -1,0 +1,16 @@
+#import kai("posix")
+
+
+U32 :: u32
+F64 :: f64
+
+
+lcg :: fn (state, a, m : U32) -> F64, U32 {
+    newState := (state * a) % m
+    rand := cast(F64) newState / cast(F64) m
+    return rand, newState
+} 
+
+
+
+
