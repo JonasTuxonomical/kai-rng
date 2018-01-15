@@ -2,17 +2,46 @@
 
 
 U32 :: u32
+U64 :: u64
 F64 :: f64
 
 
-// plain linear congruential generator (LCG) without parameter choice
-// source: Paul Glasserman, "Monte Carlo Methods in Financial Engineering" (2004)
-lcg :: fn (state, a, m : U32) -> F64, U32 {
-    newState := (state * a) % m
-    rand := cast(F64) newState / cast(F64) m
-    return rand, newState
-} 
+// base linear congruential generator
+baseLCG :: fn (state : *$T, a, c, m : T, mask : $U) -> U {
+    <state = (a * <state + c) % m
+    random := cast(U) <state & mask
+    return random
+}
 
+
+// configuration for baseLCG
+configLCG :: struct {
+    a, c, m : U64
+    mask : U32
+}
+
+// one configuration for 64bit/32bit
+configLCG6432 := configLCG {
+    0x5851F42D4C957F2D,
+    0x14057B7EF767814F,
+    0xFFFFFFFFFFFFFFFF,
+    0xFFFFFFFF
+}
+
+lcg6432 :: fn (state : *U64) -> U32 {
+    return baseLCG(
+        state,
+        configLCG6432.a,
+        configLCG6432.c,
+        configLCG6432.m,
+        configLCG6432.mask)
+}
+
+// TODO(jonas): is this a good way?
+randFloatLCG :: fn (state : *U64) -> F64 {
+    randInt := lcg6432(state)
+    return cast(F64) randInt / cast(F64) (configLCG6432.mask)
+}
 
 
 
