@@ -1,6 +1,7 @@
 #import kai("posix")
 #import kai("arrays")
 #import "src/rng.kai"
+#import "src/timer.kai"
 
 // print hex with %x or %lx
 
@@ -8,21 +9,63 @@ main :: fn () -> void {
     
     state : u64
 
-    state = 8746657
+    state = 876657
+
+    // Warmup
+    N := 1000000000
+    randomSum : f64 = 0
+    for i:=0; i<N; i+=1 {
+        randomSum += rng.floatLCG(&state)
+    }
     
-    random = rng.lcg6432(&state)
 
-    posix.printf("random = %d\n".raw, random)
-    posix.printf("state = %lx\n".raw, state)
+    // LCG
+    posix.printf("\nLCG stuff\n".raw)
 
-    N := 10000
+    timings: timer.Timings
+    timer.TimingsInit(&timings, 3)
+
+    timer.StartSection(&timings, "LCG 64/32            ")
+
+    randomSum = 0
+    for i:=0; i<N; i+=1 {
+        randomSum += rng.floatLCG(&state)
+    }
+    
+    timer.StopSection(&timings)    
+
+    posix.printf("avg = %.10f\n".raw, randomSum / cast(f64) N)
+
+    // XORSHIFT 64
+    posix.printf("\nXORSHIFT 64 stuff\n".raw)
+
+    timer.StartSection(&timings, "XORSHIFT 64          ")
+
     randSum : f64 = 0
     for i:=0; i<N; i+=1 {
-        randSum += rng.randFloat(&state)
+        randSum += rng.floatXorshift64(&state)
     }
     posix.printf("avg = %.10f\n".raw, randSum / cast(f64) N)
 
-    
+    // XORSHIFT 1024
+    posix.printf("\nXORSHIFT 1024 stuff\n".raw)
+    rstate : rng.StateXorshift1024
+    for i:=0; i<16; i += 1 {
+        rstate.state[i] = 2112
+    }
+    rstate.p = 1
+
+
+    timer.StartSection(&timings, "XORSHIFT 1024        ")
+
+    randSum = 0
+    for i:=0; i<N; i+=1 {
+        randSum += rng.floatXorshift1024(&rstate)
+    }
+    posix.printf("avg = %.10f\n".raw, randSum / cast(f64) N)
+
+    timer.PrintTimings(&timings)
+
 }
 
 

@@ -6,6 +6,9 @@ U64 :: u64
 F64 :: f64
 
 
+
+// LCGs -----------------------------------------------------------------------
+
 // base linear congruential generator
 baseLCG :: fn (state : *$T, a, c, m : T, mask : $U) -> U {
     <state = (a * <state + c) % m
@@ -20,28 +23,97 @@ configLCG :: struct {
     mask : U32
 }
 
+
 // one configuration for 64bit/32bit
-configLCG6432 := configLCG {
+configLCG64_32 := configLCG {
     0x5851F42D4C957F2D,
     0x14057B7EF767814F,
     0xFFFFFFFFFFFFFFFF,
     0xFFFFFFFF
 }
 
-lcg6432 :: fn (state : *U64) -> U32 {
+
+lcg64_32 :: fn (state : *U64) -> U32 {
     return baseLCG(
         state,
-        configLCG6432.a,
-        configLCG6432.c,
-        configLCG6432.m,
-        configLCG6432.mask)
+        configLCG64_32.a,
+        configLCG64_32.c,
+        configLCG64_32.m,
+        configLCG64_32.mask)
 }
 
-// TODO(jonas): is this a good way?
-randFloatLCG :: fn (state : *U64) -> F64 {
-    randInt := lcg6432(state)
-    return cast(F64) randInt / cast(F64) (configLCG6432.mask)
+
+floatLCG :: fn (state : *U64) -> F64 {
+    randInt := lcg64_32(state)
+    return cast(F64) randInt / cast(F64) (configLCG64_32.mask)
 }
+
+
+// XORSHIFT -------------------------------------------------------------------
+
+// References
+// http://vigna.di.unimi.it/ftp/papers/xorshift.pdf
+// http://xoroshiro.di.unimi.it
+
+
+xorshift64 :: fn (state : *U64) -> U64 {
+    x := <state
+    x ^= x >> 12
+    x ^= x << 25
+    x ^= x >> 27
+    <state = x
+    return x * bitcast(U64) 0x2545F4914F6CDD1D
+}
+
+
+floatXorshift64 :: fn (state : *U64) -> F64 {
+
+    x := xorshift64(state)
+
+    u : union {
+        i : U64
+        f : F64
+    }
+    u.i = cast(U64) 0x3FF << 52 | x >> 12
+    return u.f - 1.0
+}
+
+
+StateXorshift1024 :: struct {
+    state : [16]U64
+    p : U32
+}
+
+
+xorshift1024 :: fn (state : *StateXorshift1024)-> U64 {
+    p := state.p
+
+    s0 := state.state[p]
+    p = (p + 1) & 15
+    s1 := state.state[p]
+
+    s1 ^= s1 << 31
+
+    state.state[p] = s1 ^ s0 ^ (s1 >> 11) ^ (s0 >> 30)
+
+    state.p = p
+
+    return state.state[p] * bitcast(U64) 0x106689D45497FDB5
+}
+
+
+floatXorshift1024 :: fn (state : *StateXorshift1024) -> F64 {
+
+    x := xorshift1024(state)
+
+    u : union {
+        i : U64
+        f : F64
+    }
+    u.i = cast(U64) 0x3FF << 52 | x >> 12
+    return u.f - 1.0
+}
+
 
 
 
